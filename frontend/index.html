@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stress Detection System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .upload-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            border: 1px solid #d6e9c6;
+            color: #3c763d;
+        }
+        .error {
+            background-color: #f2dede;
+            border: 1px solid #ebccd1;
+            color: #a94442;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stress Detection System</h1>
+        <p>Upload your physiological data CSV file to detect stress levels.</p>
+        
+        <div class="upload-section">
+            <input type="file" id="fileInput" accept=".csv">
+            <button id="uploadButton">Upload and Analyze</button>
+        </div>
+        
+        <div class="loading" id="loading">
+            <p>Analyzing your data...</p>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        document.getElementById('uploadButton').addEventListener('click', async () => {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a CSV file first.');
+                return;
+            }
+            
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Replace with your actual Vercel deployment URL
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                
+                if (response.ok) {
+                    displayResult(result, 'success');
+                } else {
+                    displayResult({error: result.detail || 'An error occurred'}, 'error');
+                }
+            } catch (error) {
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+                displayResult({error: 'Failed to connect to the server'}, 'error');
+            }
+        });
+        
+        function displayResult(data, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            
+            if (type === 'success') {
+                resultDiv.innerHTML = `
+                    <h3>Analysis Result</h3>
+                    <p><strong>Stress Level:</strong> ${data.stress_level}</p>
+                    <p><strong>Confidence:</strong> ${(data.confidence * 100).toFixed(2)}%</p>
+                    <p><strong>Features Used:</strong> ${data.features_used.join(', ')}</p>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <h3>Error</h3>
+                    <p>${data.error}</p>
+                `;
+            }
+            
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
